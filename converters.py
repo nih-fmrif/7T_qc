@@ -4,7 +4,7 @@ import multiprocessing
 from subprocess import CalledProcessError, check_output, STDOUT
 from glob import glob
 from concurrent.futures import ThreadPoolExecutor, wait
-from utils import log_output, create_path, extract_tgz, filter_series
+from utils import log_output, create_path, extract_tgz, filter_series, get_scanner_meta
 from threading import Semaphore
 
 
@@ -205,15 +205,22 @@ def dcm_to_nifti(dcm_dir, out_fname, out_dir, conversion_tool, logger=None, bids
                                      "'dimon'".format(conversion_tool))
 
 
-def convert_to_bids(bids_dir, oxygen_dir, mapping_guide=None, conversion_tool='dcm2niix',
-                    logger=None, nthreads=MAX_WORKERS, overwrite=False, filters=None):
+def convert_to_bids(bids_dir, oxygen_dir, mapping_guide=None, conversion_tool='dcm2niix', logger=None,
+                    nthreads=MAX_WORKERS, overwrite=False, filters=None, scanner_meta=False):
 
     if nthreads > 0:
         thread_semaphore = Semaphore(value=1)
     else:
         thread_semaphore = None
 
-    if not os.path.isdir(bids_dir):
+    # If BIDS directory exists, verify that it's either empty, or that overwrite is allowed. Otherwise create directory.
+    if os.path.isdir(bids_dir):
+        if not overwrite:
+            raise DuplicateFile("The BIDS directory is not empty, and overwrite is set to False. Aborting...")
+        else:
+            rm_files = glob(os.path.join(bids_dir, '*'))
+            list(map(shutil.rmtree, rm_files))
+    else:
         create_path(bids_dir)
 
     # Uncompress any compressed Oxygen DICOM files
@@ -298,6 +305,8 @@ def convert_to_bids(bids_dir, oxygen_dir, mapping_guide=None, conversion_tool='d
 
                     mapping[subject_id]["sessions"][session_id]["scans"][scan_id] = {
                         "series_dir": "/".join(sc_dir.split("/")[-3:]),
+                        "bids_fpath": "",
+                        "conversion_status": False,
                         "meta": {
                             "type": "func",
                             "modality": "bold",
@@ -305,6 +314,10 @@ def convert_to_bids(bids_dir, oxygen_dir, mapping_guide=None, conversion_tool='d
                             "run": "{:0>4d}".format(scan_counter)
                         }
                     }
+
+                    if scanner_meta:
+                        meta = get_scanner_meta(sc_dir)
+                        mapping[subject_id]["sessions"][session_id]["scans"][scan_id]["scanner_meta"] = meta
 
                     scan_counter += 1
 
@@ -335,19 +348,6 @@ def convert_to_bids(bids_dir, oxygen_dir, mapping_guide=None, conversion_tool='d
 
                 exec_list.append((series_dir, bids_fpath))
 
-    # If overwrite is not allowed, verify that none of the files to be written as nifti in the BIDS directory
-    # exist, otherwise throw an error
-    if not overwrite:
-        pre_existing_files = False
-        for _, bids_fpath in exec_list:
-
-            if os.path.isfile(bids_fpath):
-                print("ERROR: File {} already exists and overwrite is set to False.".format(bids_fpath))
-                pre_existing_files = True
-
-        if pre_existing_files:
-            raise DuplicateFile("Pre-existing files found and ovewrite is set to False. Aborting...")
-
     # Iterate through executable list and convert to nifti
     if nthreads > 0:    # Run in multiple threads
 
@@ -366,14 +366,22 @@ def convert_to_bids(bids_dir, oxygen_dir, mapping_guide=None, conversion_tool='d
                 futures.append(executor.submit(dcm_to_nifti, dcm_dir, out_fname, out_bdir,
                                                conversion_tool=conversion_tool, bids_meta=True, logger=logger,
                                                semaphore=thread_semaphore))
-                ## REMOVE
+                ## FOR TESTING
                 # break
+                #######
 
             wait(futures)
 
-            ### REMOVE
-            # for future in futures:
-            #     print("result: {}".format(future.result()))
+            for future in futures:
+                series_dir, bids_fpath, success = future.result()
+
+                subject = series_dir.split("/")[0].split("-")[1]
+                session = series_dir.split("/")[1]
+                scan = series_dir.split("/")[2]
+
+                if success:
+                    mapping[subject]["sessions"][session]["scans"][scan]["bids_fpath"] = bids_fpath
+                    mapping[subject]["sessions"][session]["scans"][scan]["conversion_status"] = True
 
     else:   # Run sequentially
 
@@ -385,4 +393,15 @@ def convert_to_bids(bids_dir, oxygen_dir, mapping_guide=None, conversion_tool='d
 
             out_fname = bids_fpath.split("/")[-1].split(".")[0]
 
-            dcm_to_nifti(dcm_dir, out_fname, out_bdir, conversion_tool='dcm2niix', bids_meta=True, logger=logger)
+            series_dir, bids_fpath, success = dcm_to_nifti(dcm_dir, out_fname, out_bdir, conversion_tool='dcm2niix',
+                                                           bids_meta=True, logger=logger)
+
+            subject = series_dir.split("/")[0].split("-")[1]
+            session = series_dir.split("/")[1]
+            scan = series_dir.split("/")[2]
+
+            if success:
+                mapping[subject]["sessions"][session]["scans"][scan]["bids_fpath"] = bids_fpath
+                mapping[subject]["sessions"][session]["scans"][scan]["conversion_status"] = True
+
+    return mapping

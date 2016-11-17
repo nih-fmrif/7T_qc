@@ -2,6 +2,7 @@ import os
 import errno
 import tarfile
 import dicom
+import re
 
 
 def log_output(log_str, level="INFO", logger=None, semaphore=None):
@@ -76,12 +77,51 @@ def filter_series(scan_dir, filters=None, logger=None):
                 # Pick an arbitrary DICOM file from the current scan folder, and retrieve the sequence
                 # name
                 curr_dcm = dicom.read_file(os.path.join(scan_dir, dcm_files[0]))
-                seq_name = curr_dcm.SequenceName.strip()
+                try:
+                    seq_name = curr_dcm.SequenceName
+                except AttributeError:
+                    seq_name = None
+
+                if not seq_name:
+                    log_output("The series {} does not contains a sequence within the allowed list of sequences. "
+                               "Skipping...".format(scan_dir), logger=logger)
+                    return True
+                else:
+                    seq_name = seq_name.strip()
 
                 if seq_name not in filters[scan_filter]:
 
+                    # print("Sequence: {}".format(seq_name))
+
                     log_output("The series {} does not contains a sequence within the allowed list of sequences. "
-                               "Skipping...".format(scan_dir))
+                               "Skipping...".format(scan_dir), logger=logger)
                     return True
 
     return False
+
+
+def clean(var_str):
+    return re.sub('\W|^(?=\d)', '_', var_str)
+
+
+def get_scanner_meta(scan_dir):
+
+    series_file = os.path.join(scan_dir, "README-Series.txt")
+
+    scanner_meta = {}
+
+    with open(series_file, "r") as sf:
+
+        for line in sf:
+
+            if "Accession Number" not in line and \
+                            "Physician" not in line and \
+                            "Patient" not in line and \
+                            "Allergies" not in line:
+                line_items = line.strip().split(":")
+
+                scanner_meta.update({
+                    clean(line_items[0]): line_items[1]
+                })
+
+    return scanner_meta
