@@ -72,18 +72,6 @@ if __name__ == "__main__":
 
     settings = parser.parse_args()
 
-    # Print the settings
-    settings_str = "Bids directory: {}\n".format(settings.bids_dir) + \
-                   "Oxygen data: {}\n".format(settings.oxygen_dir) + \
-                   "Mapping guide fpath: {}\n".format(settings.mapping_guide) +\
-                   "Mapping directory: {}\n".format(settings.mapping_dir) + \
-                   "Overwrite: {}\n".format(settings.overwrite) + \
-                   "Filter(s) fpath: {}\n".format(settings.filters) + \
-                   "Log directory: {}\n".format(settings.log_dir) + \
-                   "Include scanner metadata: {}\n\n".format(settings.log_dir)
-
-    log_output(settings_str, logger=logging)
-
     date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
     # Configure logger
@@ -98,6 +86,18 @@ if __name__ == "__main__":
         level=logging.DEBUG,
         format='LOG ENTRY %(asctime)s - %(levelname)s \n%(message)s \nEND LOG ENTRY\n'
     )
+
+    # Print the settings
+    settings_str = "Bids directory: {}\n".format(settings.bids_dir) + \
+                   "Oxygen data: {}\n".format(settings.oxygen_dir) + \
+                   "Mapping guide fpath: {}\n".format(settings.mapping_guide) + \
+                   "Mapping directory: {}\n".format(settings.mapping_dir) + \
+                   "Overwrite: {}\n".format(settings.overwrite) + \
+                   "Filter(s) fpath: {}\n".format(settings.filters) + \
+                   "Log directory: {}\n".format(settings.log_dir) + \
+                   "Include scanner metadata: {}\n\n".format(settings.log_dir)
+
+    log_output(settings_str, logger=logging)
 
     log_output("Beginning conversion to BIDS format of data in {} directory.\n"
                "Log located in {}.".format(settings.oxygen_dir, log_fpath), logger=logging)
