@@ -82,6 +82,8 @@ if __name__ == "__main__":
                    "Log directory: {}\n".format(settings.log_dir) + \
                    "Include scanner metadata: {}\n\n".format(settings.log_dir)
 
+    log_output(settings_str, logger=logging)
+
     date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
     # Configure logger
