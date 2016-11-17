@@ -75,11 +75,12 @@ if __name__ == "__main__":
     # Print the settings
     settings_str = "Bids directory: {}\n".format(settings.bids_dir) + \
                    "Oxygen data: {}\n".format(settings.oxygen_dir) + \
+                   "Mapping guide fpath: {}\n".format(settings.mapping_guide) +\
                    "Mapping directory: {}\n".format(settings.mapping_dir) + \
                    "Overwrite: {}\n".format(settings.overwrite) + \
                    "Filter(s) fpath: {}\n".format(settings.filters) + \
                    "Log directory: {}\n".format(settings.log_dir) + \
-                   "Include scanner metadata: {}\n".format(settings.log_dir)
+                   "Include scanner metadata: {}\n\n".format(settings.log_dir)
 
     date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
