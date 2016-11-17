@@ -145,10 +145,10 @@ def get_tsnr(in_file, out_dir, logger=None, semaphore=None):
 
         except CalledProcessError as e:
 
-            log_str = LOG_MESSAGES["error"].format(cmd[0], " ".join(cmd), e.returncode())
+            log_str = LOG_MESSAGES["error"].format(cmd[0], " ".join(cmd), e.returncode)
 
-            if e.output():
-                log_str += LOG_MESSAGES["output"].format(e.output())
+            if e.output:
+                log_str += LOG_MESSAGES["output"].format(e.output)
 
             log_output(log_str, logger=logger, semaphore=semaphore)
 

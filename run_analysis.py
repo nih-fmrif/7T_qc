@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--nthreads",
-        help="Number of threads to use. Choose 0 to run sequentially",
+        help="Number of threads to use. Choose 0 to run sequentially. Default is NUM_CPU_CORES * 5",
         default=MAX_WORKERS
     )
 
@@ -47,8 +47,11 @@ if __name__ == "__main__":
 
     date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
+    if not os.path.isdir(settings.log_dir):
+        create_path(settings.log_dir)
+
     # Configure logger
-    log_fname = "get_tsnr_{}.log".format(date_str)
+    log_fname = "run_analysis_{}.log".format(date_str)
     log_fpath = os.path.join(settings.log_dir, log_fname)
 
     logging.basicConfig(
