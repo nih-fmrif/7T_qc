@@ -4,7 +4,7 @@ import logging
 import multiprocessing
 import json
 from converters import convert_to_bids
-from utils import create_path
+from utils import create_path, log_output
 from datetime import datetime
 from collections import OrderedDict
 
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--logs",
+        "--log_dir",
         help="absolute path to log directory",
         default=os.path.join(os.getcwd(), "logs")
     )
@@ -72,11 +72,23 @@ if __name__ == "__main__":
 
     settings = parser.parse_args()
 
+    # Print the settings
+    settings_str = "Bids directory: {}\n".format(settings.bids_dir) + \
+                   "Oxygen data: {}\n".format(settings.oxygen_dir) + \
+                   "Mapping directory: {}\n".format(settings.mapping_dir) + \
+                   "Overwrite: {}\n".format(settings.overwrite) + \
+                   "Filter(s) fpath: {}\n".format(settings.filters) + \
+                   "Log directory: {}\n".format(settings.log_dir) + \
+                   "Include scanner metadata: {}\n".format(settings.log_dir)
+
     date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
     # Configure logger
+    if not os.path.isdir(settings.log_dir):
+        create_path(settings.log_dir)
+
     log_fname = "bids_conversion_{}.log".format(date_str)
-    log_fpath = os.path.join(settings.logs, log_fname)
+    log_fpath = os.path.join(settings.log_dir, log_fname)
 
     logging.basicConfig(
         filename=log_fpath,
@@ -84,8 +96,8 @@ if __name__ == "__main__":
         format='LOG ENTRY %(asctime)s - %(levelname)s \n%(message)s \nEND LOG ENTRY\n'
     )
 
-    print("Beginning conversion to BIDS format of data in {} directory.\n"
-          "Log located in {}.".format(settings.oxygen_dir, log_fpath))
+    log_output("Beginning conversion to BIDS format of data in {} directory.\n"
+               "Log located in {}.".format(settings.oxygen_dir, log_fpath), logger=logging)
 
     if settings.filters:
         with open(settings.filters, "r") as filter_file:
@@ -98,13 +110,15 @@ if __name__ == "__main__":
                               overwrite=settings.overwrite, filters=filters,
                               scanner_meta=settings.scanner_meta)
 
-    print("BIDS conversion complete. Results stored in {} directory".format(settings.bids_dir))
+    log_output("BIDS conversion complete. Results stored in {} directory".format(settings.bids_dir), logger=logging)
 
     # Save mapping
     if not os.path.isdir(settings.mapping_dir):
         create_path(settings.mapping_dir)
 
     map_fpath = os.path.join(settings.mapping_dir, "bids_mapping_{}.json".format(date_str))
+
+    log_output("Creating mappings file...", logger=logging)
 
     with open(map_fpath, "w") as outfile:
         contents = json.dumps(mapping, sort_keys=True, indent=4, separators=(',', ': '))
@@ -128,6 +142,10 @@ if __name__ == "__main__":
         sorted_contents = json.dumps(sorted_by_bids, indent=4, separators=(',', ': '))
 
         outfile.write(sorted_contents)
+
+        log_output("Mapping file created in {}".format(map_fpath), logger=logging)
+
+    log_output("Finished!!!", logger=logging)
 
     # Remove all handlers associated with the root logger object.
     for handler in logging.root.handlers[:]:
