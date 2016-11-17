@@ -45,10 +45,10 @@ if __name__ == "__main__":
 
     settings = parser.parse_args()
 
-    date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-
     if not os.path.isdir(settings.log_dir):
         create_path(settings.log_dir)
+
+    date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
     # Configure logger
     log_fname = "run_analysis_{}.log".format(date_str)
@@ -59,6 +59,13 @@ if __name__ == "__main__":
         level=logging.DEBUG,
         format='LOG ENTRY %(asctime)s - %(levelname)s \n%(message)s \nEND LOG ENTRY\n'
     )
+
+    settings_str = "Bids directory: {}\n".format(settings.bids_dir) + \
+                   "Output directory: {}\n".format(settings.output_dir) + \
+                   "Log directory: {}\n".format(settings.log_dir) + \
+                   "No. of Threads: {}\n".format(settings.nthreads)
+
+    log_output(settings_str, logger=logging)
 
     log_output("Beginning analysis...", logger=logging)
 
