@@ -215,11 +215,15 @@ def convert_to_bids(bids_dir, oxygen_dir, mapping_guide=None, conversion_tool='d
 
     # If BIDS directory exists, verify that it's either empty, or that overwrite is allowed. Otherwise create directory.
     if os.path.isdir(bids_dir):
-        if not overwrite:
-            raise DuplicateFile("The BIDS directory is not empty, and overwrite is set to False. Aborting...")
-        else:
-            rm_files = glob(os.path.join(bids_dir, '*'))
-            list(map(shutil.rmtree, rm_files))
+
+        bids_files = glob(os.path.join(bids_dir, '*'))
+
+        if bids_files:
+            if not overwrite:
+                raise DuplicateFile("The BIDS directory is not empty, and overwrite is set to False. Aborting...")
+            else:
+                rm_files = glob(os.path.join(bids_dir, '*'))
+                list(map(shutil.rmtree, rm_files))
     else:
         create_path(bids_dir)
 
