@@ -12,7 +12,7 @@ from collections import OrderedDict
 from datetime import datetime
 
 
-MAX_WORKERS = cpu_count() * 5
+MAX_WORKERS = (cpu_count() * 5) // 4
 
 
 class DuplicateFile(Exception):
@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--nthreads",
-        help="Number of threads to use. Choose 0 to run sequentially. Default is NUM_CPU_CORES * 5",
+        help="Number of threads to use. Choose 0 to run sequentially. Default is (NUM_CPU_CORES * 5) // 4",
         default=MAX_WORKERS
     )
 
