@@ -81,6 +81,11 @@ if __name__ == "__main__":
     log_fname = "bids_conversion_{}.log".format(date_str)
     log_fpath = os.path.join(settings.log_dir, log_fname)
 
+    # Remove all handlers associated with the root logger object.
+    for handler in logging.root.handlers[:]:
+        handler.close()
+        logging.root.removeHandler(handler)
+
     logging.basicConfig(
         filename=log_fpath,
         level=logging.DEBUG,
