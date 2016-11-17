@@ -41,7 +41,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--nthreads",
         help="number of threads to use when running this script. Use 0 for sequential run.",
-        default=MAX_WORKERS
+        default=MAX_WORKERS,
+        type=int
     )
 
     parser.add_argument(

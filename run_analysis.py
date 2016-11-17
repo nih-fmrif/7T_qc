@@ -46,7 +46,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--nthreads",
         help="Number of threads to use. Choose 0 to run sequentially. Default is (NUM_CPU_CORES * 5) // 4",
-        default=MAX_WORKERS
+        default=MAX_WORKERS,
+        type=int
     )
 
     parser.add_argument(
