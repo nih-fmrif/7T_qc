@@ -119,8 +119,7 @@ if __name__ == "__main__":
         futures = []
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             for img in nii_imgs:
-                out_dir = os.path.join(settings.output_dir, os.path.basename(img).split(".")[0])
-                futures.append(executor.submit(get_tsnr, img, out_dir, logging, tsnr_semaphore))
+                futures.append(executor.submit(get_tsnr, img, settings.output_dir, logging, tsnr_semaphore))
 
         wait(futures)
         for future in futures:
@@ -129,8 +128,7 @@ if __name__ == "__main__":
 
     else:
         for img in nii_imgs:
-            out_dir = os.path.join(settings.output_dir, os.path.basename(img).split(".")[0])
-            clean_fname, tsnr_val = get_tsnr(img, out_dir, logger=logging)
+            clean_fname, tsnr_val = get_tsnr(img, settings.output_dir, logger=logging)
             analysis_results[clean_fname] = tsnr_val
 
     sorted_results = OrderedDict(sorted(analysis_results.items(), key=lambda t: t[0]))
