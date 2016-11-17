@@ -95,7 +95,7 @@ if __name__ == "__main__":
                    "Overwrite: {}\n".format(settings.overwrite) + \
                    "Filter(s) fpath: {}\n".format(settings.filters) + \
                    "Log directory: {}\n".format(settings.log_dir) + \
-                   "Include scanner metadata: {}\n\n".format(settings.log_dir)
+                   "Include scanner metadata: {}\n\n".format(settings.scanner_meta)
 
     log_output(settings_str, logger=logging)
 
