@@ -117,7 +117,7 @@ if __name__ == "__main__":
     if settings.nthreads > 0:
 
         futures = []
-        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        with ThreadPoolExecutor(max_workers=settings.nthreads) as executor:
             for img in nii_imgs:
                 futures.append(executor.submit(get_tsnr, img, settings.output_dir, logging, tsnr_semaphore))
 
