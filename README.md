@@ -68,7 +68,7 @@ Where:
 ### A Note on Filters file
  
  * So far you can only filter by scanner sequence, i.e. create a JSON file with the allowable sequences. E.g.
- ```
+```
  {
   "sequences": [
     "B.Poser@MBIC,NL",
