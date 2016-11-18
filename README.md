@@ -20,35 +20,44 @@ pip install -r requirements.txt
 
 **The scans must be in a single top-level directory. They can be either in uncompressed or compressed (.tgz) form. Eg.**
 
-* dicom_data/
-  -- John_Doe_12345/
-    * 2016-01-01-12345/
-      -- mr_0001/
-      -- mr_0002/
-      -- ...
-    * 2016-01-02-12345
-      -- mr_0001/
-      -- mr_0002/
-      -- ...
-    * ...
+    dicom_data/
+        John_Doe_12345/
+            2016-01-01-12345/
+                mr_0001/
+                mr_0002/
+                ...
+            2016-01-02-12345
+                mr_0001/
+                mr_0002/
+                ...
+        Jane_Doe_12346/
+            2016-01-01-12345/
+                mr_0001/
+                mr_0002/
+                ...
+            2016-01-02-12345
+                mr_0001/
+                mr_0002/
+                ...
+        ...
 
 OR:
 
-* dicom_data/
-  -- John-Doe-12345_2016-01-01-12345.tgz
-  -- Jane-Doe-12345_2016-01-01-12345.tgz
-  -- ...
+    dicom_data/
+        John-Doe-12345_2016-01-01-12345.tgz
+        Jane-Doe-12345_2016-01-01-12345.tgz
+        ...
 
 ### Step 3 - Run
 ```
-python ~/scripts/gen_bids.py /Users/myuser/bids_data/ /Users/myuser/oxygen_data/  \
+python ~/scripts/gen_bids.py /Users/myuser/bids_data/ /Users/myuser/dicom_data/  \
 --mapping_dir /Users/myuser/mappings/ --filters /Users/myuser/filters.json \
 --log_dir /Users/myuser/logs/ --scanner_meta
 ```
 
 Where:
  * **/Users/myuser/bids_data/** is the desired output directory for the BIDS data
- * **/Users/myuser/oxygen_data/** is the top-level directory containing the Oxygen DICOM files as specified above
+ * **/Users/myuser/dicom_data/** is the top-level directory containing the Oxygen DICOM files as specified above
  * **/Users/myuser/mappings/** is the directory where a JSON file containing a map from BIDS format to the Oxygen files (This file **WILL CONTAIN PII**, treat accordingly!)
  * **/Users/myuser/filters.json** is  JSON file with parameter to filter scans against, see below.
  * **/Users/myuser/logs/** is the directory where the logs should be saved.
