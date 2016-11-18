@@ -3,7 +3,9 @@
 ## Converting Oxygen DICOM files into a BIDS-compatible directory structure
 **WARNING: Remember DICOM files from Oxygen have PII - DO NOT load this data to Helix/Felix/Biowulf.**
 
-### Step 1 - Create a virtual environment (named 'bids' in this example) on a machine with access to the raw data from Oxygen (assumes a working version of Anaconda is installed - does not matter if it's Anaconda2 or Anaconda3)
+### Step 0 - Install Anaconda (does not matter if you install the python 2 or python 3 version as base) and dcm2niix if not available. Make sure they are accessible in your $PATH environment variable.
+
+### Step 1 - Create a virtual environment (named 'bids' in this example) on a machine with access to the raw data from Oxygen
 
 ```
 conda create --name bids python=3 -y
