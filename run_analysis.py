@@ -5,7 +5,7 @@ import shutil
 from concurrent.futures import ThreadPoolExecutor, wait
 from threading import Semaphore
 from utils import log_output, create_path
-from algorithms import get_tsnr
+from workflows import seven_tesla_wf
 from glob import glob
 from multiprocessing import cpu_count
 from collections import OrderedDict
@@ -119,7 +119,7 @@ if __name__ == "__main__":
         futures = []
         with ThreadPoolExecutor(max_workers=settings.nthreads) as executor:
             for img in nii_imgs:
-                futures.append(executor.submit(get_tsnr, img, settings.output_dir, logging, tsnr_semaphore))
+                futures.append(executor.submit(seven_tesla_wf, img, settings.output_dir, logging, tsnr_semaphore))
 
         wait(futures)
         for future in futures:
@@ -128,7 +128,7 @@ if __name__ == "__main__":
 
     else:
         for img in nii_imgs:
-            clean_fname, tsnr_val = get_tsnr(img, settings.output_dir, logger=logging)
+            clean_fname, tsnr_val = seven_tesla_wf(img, settings.output_dir, logger=logging)
             analysis_results[clean_fname] = tsnr_val
 
     sorted_results = OrderedDict(sorted(analysis_results.items(), key=lambda t: t[0]))
