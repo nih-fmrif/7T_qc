@@ -20,7 +20,7 @@ def calc_tsnr(fname, in_file, epi_mask):
     mskdata[mskdata < 0] = 0
     mskdata[mskdata > 0] = 1
 
-    tsnr_data = nb.load(fname).get_data()
+    tsnr_data = nb.load("{}.nii.gz".format(fname)).get_data()
     tsnr_val = float(np.median(tsnr_data[mskdata > 0]))
 
     return tsnr_val
