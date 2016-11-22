@@ -63,7 +63,7 @@ def seven_tesla_wf(in_file, out_dir, logger=None, semaphore=None):
         "3dvolreg",
         "-overwrite",
         "-twopass",
-        "-heptic",
+        "-cubic",
         "-base",
         "3",
         "-zpad",
