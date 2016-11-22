@@ -73,6 +73,8 @@ def seven_tesla_wf(in_file, out_dir, logger=None, semaphore=None):
         "{}".format(oned_file),
         "-maxdisp1D",
         "{}".format(max_disp),
+        "-1Dmatrix_save",
+        "{}".format(oned_matrix),
         "-prefix",
         "{}.nii.gz".format(volreg_fname),
         "{}.nii.gz".format(tshift_fname)
