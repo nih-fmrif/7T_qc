@@ -1,7 +1,8 @@
 import os
 from subprocess import CalledProcessError, check_output, STDOUT
 from utils import log_output, create_path
-from algorithms import calc_tsnr
+from algorithms import calc_tsnr, parse_fwhm, fd_jenkinson
+from collections import OrderedDict
 
 
 LOG_MESSAGES = {
@@ -200,6 +201,29 @@ def seven_tesla_wf(in_file, out_dir, logger=None, semaphore=None):
 
         tsnr_val = calc_tsnr(tsnr_fname, tsnr_infile, epi_mask)
 
-        return clean_fname, tsnr_val
+        # Calculate the FWHM of the dataset before and after registration (using linear detrending)
+        prereg_fname = os.path.join(cwd, prereg_fname)
+        postreg_fname = os.path.join(cwd, postreg_fname)
+
+        pre_fwhm_x, pre_fwhm_y, pre_fwhm_z, pre_fwhm_combined = parse_fwhm(prereg_fname)
+        post_fwhm_x, post_fwhm_y, post_fwhm_z, post_fwhm_combined = parse_fwhm(postreg_fname)
+
+        # Calculate the framewise displacement
+        fd_fname = os.path.join(cwd, "{}_fd.txt".format(clean_fname))
+        res_file = fd_jenkinson(os.path.join(cwd, oned_matrix), out_file=fd_fname)
+
+        statistics = OrderedDict({
+            'tsnr_val': tsnr_val,
+            'prereg_fwhm_x': pre_fwhm_x,
+            'prereg_fwhm_y': pre_fwhm_y,
+            'prereg_fwhm_z': pre_fwhm_z,
+            'prereg_fwhm_combined': pre_fwhm_combined,
+            'postreg_fwhm_x': post_fwhm_x,
+            'postreg_fwhm_y': post_fwhm_y,
+            'postreg_fwhm_z': post_fwhm_z,
+            'postreg_fwhm_combined': post_fwhm_combined,
+        })
+
+        return clean_fname, statistics
 
     return clean_fname, None

@@ -24,3 +24,75 @@ def calc_tsnr(fname, in_file, epi_mask):
     tsnr_val = float(np.median(tsnr_data[mskdata > 0]))
 
     return tsnr_val
+
+
+def parse_fwhm(in_file):
+
+    with open(in_file, "r") as infile:
+        lines = infile.read()
+
+    vals = " ".join(lines.split("\n")[-2].split()).split(" ")
+
+    fwhm_x, fwhm_y, fwhm_z, fwhm_combined = vals
+
+    return fwhm_x, fwhm_y, fwhm_z, fwhm_combined
+
+
+# Got this from MRIQC
+def fd_jenkinson(in_file, rmax=80., out_file=None):
+    """
+    Compute the :abbr:`FD (framewise displacement)` [Jenkinson2002]_
+    on a 4D dataset, after AFNI-``3dvolreg`` has been executed
+    (generally a file named ``*.affmat12.1D``).
+    :param str in_file: path to epi file
+    :param float rmax: the default radius (as in FSL) of a sphere represents
+      the brain in which the angular displacements are projected.
+    :param str out_file: a path for the output file with the FD
+    :return: the output file with the FD, and the average FD along
+      the time series
+    :rtype: tuple(str, float)
+    .. note ::
+      :code:`infile` should have one 3dvolreg affine matrix in one row -
+      NOT the motion parameters
+    .. note :: Acknowledgments
+      We thank Steve Giavasis (@sgiavasis) and Krishna Somandepali for their
+      original implementation of this code in the [QAP]_.
+    """
+
+    import math
+    import os.path as op
+    import numpy as np
+
+    if out_file is None:
+        fname, ext = op.splitext(op.basename(in_file))
+        out_file = op.abspath('{}_fdfile{}'.format(fname, ext))
+
+    pm_ = np.genfromtxt(in_file)
+    original_shape = pm_.shape
+    pm = np.zeros((pm_.shape[0], pm_.shape[1] + 4))
+    pm[:, :original_shape[1]] = pm_
+    pm[:, original_shape[1]:] = [0.0, 0.0, 0.0, 1.0]
+
+    # rigid body transformation matrix
+    T_rb_prev = np.matrix(np.eye(4))
+
+    flag = 0
+    X = [0]  # First timepoint
+    for i in range(0, pm.shape[0]):
+        # making use of the fact that the order of aff12 matrix is "row-by-row"
+        T_rb = np.matrix(pm[i].reshape(4, 4))
+
+        if flag == 0:
+            flag = 1
+        else:
+            M = np.dot(T_rb, T_rb_prev.I) - np.eye(4)
+            A = M[0:3, 0:3]
+            b = M[0:3, 3]
+
+            FD_J = math.sqrt(
+                (rmax * rmax / 5) * np.trace(np.dot(A.T, A)) + np.dot(b.T, b))
+            X.append(FD_J)
+
+        T_rb_prev = T_rb
+    np.savetxt(out_file, X)
+    return out_file
