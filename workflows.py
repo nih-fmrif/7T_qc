@@ -43,6 +43,17 @@ def seven_tesla_wf(in_file, out_dir, logger=None, semaphore=None):
         "{}.nii.gz".format(despike_fname)
     ]
 
+    prereg_fname = "{}_prereg_fwhm.out".format(tshift_fname)
+
+    prereg_fwhm = [
+        "3dFWHMx",
+        "-input",
+        "{}.nii.gz".format(tshift_fname),
+        "-detrend",
+        "1",
+        "-combine",
+    ]
+
     oned_file = "{}.1D".format(tshift_fname)
     oned_matrix = "{}.aff12.1D".format(tshift_fname)
     max_disp = "{}_md.1D".format(tshift_fname)
@@ -64,6 +75,17 @@ def seven_tesla_wf(in_file, out_dir, logger=None, semaphore=None):
         "-prefix",
         "{}.nii.gz".format(volreg_fname),
         "{}.nii.gz".format(tshift_fname)
+    ]
+
+    postreg_fname = "{}_postreg_fwhm.out".format(volreg_fname)
+
+    postreg_fwhm = [
+        "3dFWHMx",
+        "-input",
+        "{}.nii.gz".format(volreg_fname),
+        "-detrend",
+        "1",
+        "-combine",
     ]
 
     epi_mask_fname = "{}_mask".format(volreg_fname)
@@ -118,7 +140,9 @@ def seven_tesla_wf(in_file, out_dir, logger=None, semaphore=None):
     workflow = [
         despike,
         tshift,
+        prereg_fwhm,
         volreg,
+        postreg_fwhm,
         epi_mask,
         mean,
         detrend,
@@ -134,6 +158,20 @@ def seven_tesla_wf(in_file, out_dir, logger=None, semaphore=None):
 
         try:
             result = check_output(cmd, cwd=cwd, stderr=STDOUT, universal_newlines=True)
+
+            # The 3dFWHMx command outputs to stdout, capture this into a file
+            if "3dFWHMx" in cmd:
+
+                outfname = ""
+
+                if "{}.nii.gz".format(tshift_fname) in cmd:
+                    outfname = prereg_fname
+                elif "{}.nii.gz".format(volreg_fname) in cmd:
+                    outfname = postreg_fname
+
+                if outfname:
+                    with open(outfname, "w") as outfile:
+                        outfile.write(result)
 
             log_str = LOG_MESSAGES["success"].format(" ".join(cmd), 0)
 
