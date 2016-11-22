@@ -6,7 +6,7 @@ from nipype.algorithms.confounds import TSNR
 def calc_tsnr(fname, in_file, epi_mask):
 
     tsnr = TSNR()
-    tsnr.inputs.in_file = "{}.nii.gz".format(in_file)
+    tsnr.inputs.in_file = in_file
     tsnr.inputs.tsnr_file = "{}.nii.gz".format(fname)
     tsnr.inputs.mean_file = "{}_mean.nii.gz".format(fname)
     tsnr.inputs.stddev_file = "{}_stddev.nii.gz".format(fname)
