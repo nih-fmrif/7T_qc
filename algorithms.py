@@ -110,7 +110,7 @@ def extract_fd_results(in_file, cutoff=0.2):
     mean_fd = sum(res) / len(res)
 
     # Get the FD values above the specified cutoff
-    vals_above_cutoff = len(filter((lambda x: x > cutoff), res))
+    vals_above_cutoff = len(list(filter((lambda x: x > cutoff), res)))
 
     # Get the % of FD values above the specified cutoff
     perc_above_cutoff = float(vals_above_cutoff) / len(res) * 100

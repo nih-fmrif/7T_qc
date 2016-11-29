@@ -105,10 +105,11 @@ if __name__ == "__main__":
         create_path(settings.output_dir)
 
     # Create summary file and add the header row
-    summary_file = os.path.join(settings.output_dir, "TSNR_summaries.csv")
+    summary_file = os.path.join(settings.output_dir, "Statistics.csv")
     with open(summary_file, "w") as f:
         f.write("Image,Mean tSNR,Pre-reg FWHM X,Pre-reg FWHM Y,Pre-reg FWHM Z,Pre-reg FWHM,"
-                "Post-reg FWHM X,Post-reg FWHM Y,Post-reg FWHM Z,Post-reg FWHM,Mean FD,No. FD > 0.2mm,% FD > 0.2mm\n")
+                "Post-reg FWHM X,Post-reg FWHM Y,Post-reg FWHM Z,Post-reg FWHM,Mean FD (mm),"
+                "No. FD > 0.2mm,% FD > 0.2mm\n")
     
     # Get all the Nifti images from the BIDS directory
     nii_imgs = glob(os.path.join(settings.bids_dir, "*", "*", "*", "*.nii*"))
