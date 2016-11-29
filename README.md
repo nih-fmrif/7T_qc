@@ -111,8 +111,9 @@ pip install -r requirements.txt
 #!/bin/bash
 
 module load python
-module load afni
 source activate tsnr
+module load afni
+
 
 python ~/scripts/run_analysis.py \
 /data/<dir>/bids_data/ \
@@ -125,7 +126,12 @@ Where:
 * **/Users/myuser/tsnr_analysis/** is the top-level output directory
 * **--log_dir /Users/myuser/logs/** is the directory where the logs should be saved.
 
-**To see all the available options run: `python ~/scripts/gen_bids.py -h`**
+**To see all the available options run: `python ~/scripts/run_analysis.py -h`**
+
+### Note:
+* Make sure the line to activate the conda environment comes after loading python, but BEFORE loading any other modules.
+This is because loading a conda environment alters the $PATH and it might mess with the path config set when loading things
+like AFNI.
 
 4. Submit batch job, eg.
 `sbatch --partition=nimh --ntasks=1 --cpus-per-task=32 --mem=120g --time=10:00:00 tsnr.sh`
