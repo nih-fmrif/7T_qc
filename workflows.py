@@ -1,7 +1,7 @@
 import os
 from subprocess import CalledProcessError, check_output, STDOUT
 from utils import log_output, create_path
-from algorithms import calc_tsnr, parse_fwhm, fd_jenkinson
+from algorithms import calc_tsnr, parse_fwhm, fd_jenkinson, extract_fd_results
 from collections import OrderedDict
 
 
@@ -212,7 +212,10 @@ def seven_tesla_wf(in_file, out_dir, logger=None, semaphore=None):
 
         # Calculate the framewise displacement
         fd_fname = os.path.join(cwd, "{}_fd.txt".format(clean_fname))
-        res_file = fd_jenkinson(os.path.join(cwd, oned_matrix), out_file=fd_fname)
+        fd_res = fd_jenkinson(os.path.join(cwd, oned_matrix), out_file=fd_fname)
+
+        # Parse fd results
+        mean_fd, num_above_cutoff, perc_above_cutoff = extract_fd_results(fd_res, cutoff=0.2)
 
         statistics = OrderedDict({
             'tsnr_val': tsnr_val,
@@ -224,6 +227,9 @@ def seven_tesla_wf(in_file, out_dir, logger=None, semaphore=None):
             'postreg_fwhm_y': post_fwhm_y,
             'postreg_fwhm_z': post_fwhm_z,
             'postreg_fwhm_combined': post_fwhm_combined,
+            'mean_fd': mean_fd,
+            'num_fd_above_cutoff': num_above_cutoff,
+            'perc_fd_above_cutoff': perc_above_cutoff
         })
 
         return clean_fname, statistics

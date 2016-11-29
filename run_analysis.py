@@ -107,7 +107,8 @@ if __name__ == "__main__":
     # Create summary file and add the header row
     summary_file = os.path.join(settings.output_dir, "TSNR_summaries.csv")
     with open(summary_file, "w") as f:
-        f.write("Image,TSNR\n")
+        f.write("Image,Mean tSNR,Pre-reg FWHM X,Pre-reg FWHM Y,Pre-reg FWHM Z,Pre-reg FWHM,"
+                "Post-reg FWHM X,Post-reg FWHM Y,Post-reg FWHM Z,Post-reg FWHM,Mean FD,No. FD > 0.2mm,% FD > 0.2mm\n")
     
     # Get all the Nifti images from the BIDS directory
     nii_imgs = glob(os.path.join(settings.bids_dir, "*", "*", "*", "*.nii*"))
@@ -123,24 +124,38 @@ if __name__ == "__main__":
 
         wait(futures)
         for future in futures:
-            clean_fname, tsnr_val = future.result()
-            analysis_results[clean_fname] = tsnr_val
+            clean_fname, statistics = future.result()
+            analysis_results[clean_fname] = statistics
 
     else:
         for img in nii_imgs:
-            clean_fname, tsnr_val = seven_tesla_wf(img, settings.output_dir, logger=logging)
-            analysis_results[clean_fname] = tsnr_val
+            clean_fname, statistics = seven_tesla_wf(img, settings.output_dir, logger=logging)
+            analysis_results[clean_fname] = statistics
 
     sorted_results = OrderedDict(sorted(analysis_results.items(), key=lambda t: t[0]))
 
     # Write results to summary file
     with open(summary_file, "a") as f:
-        for clean_fname, tsnr_val in sorted_results.items():
-            f.write("{},{}\n".format(clean_fname, tsnr_val))
+        for clean_fname, statistics in sorted_results.items():
+            f.write("{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format(
+                clean_fname,
+                statistics['tsnr_val'],
+                statistics['prereg_fwhm_x'],
+                statistics['prereg_fwhm_y'],
+                statistics['prereg_fwhm_z'],
+                statistics['prereg_fwhm_combined'],
+                statistics['postreg_fwhm_x'],
+                statistics['postreg_fwhm_y'],
+                statistics['postreg_fwhm_z'],
+                statistics['postreg_fwhm_combined'],
+                statistics['mean_fd'],
+                statistics['num_fd_above_cutoff'],
+                statistics['perc_fd_above_cutoff']
+            ))
 
     log_output("Analysis complete!", logger=logging)
 
     # Remove all handlers associated with the root logger object.
     for handler in logging.root.handlers[:]:
-        handler.close()
+        handler.close()ß
         logging.root.removeHandler(handler)

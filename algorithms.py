@@ -96,3 +96,23 @@ def fd_jenkinson(in_file, rmax=80., out_file=None):
         T_rb_prev = T_rb
     np.savetxt(out_file, X)
     return out_file
+
+
+def extract_fd_results(in_file, cutoff=0.2):
+
+    with open(in_file, "r") as infile:
+        results = infile.read()
+
+    # Parse the result into an array of floats
+    res = list(map(float, results.strip().split("\n")))
+
+    # Compute the mean framewise displacement
+    mean_fd = sum(res) / len(res)
+
+    # Get the FD values above the specified cutoff
+    vals_above_cutoff = len(filter((lambda x: x > cutoff), res))
+
+    # Get the % of FD values above the specified cutoff
+    perc_above_cutoff = float(vals_above_cutoff) / len(res) * 100
+
+    return mean_fd, vals_above_cutoff, perc_above_cutoff
