@@ -157,5 +157,5 @@ if __name__ == "__main__":
 
     # Remove all handlers associated with the root logger object.
     for handler in logging.root.handlers[:]:
-        handler.close()ß
+        handler.close()
         logging.root.removeHandler(handler)
