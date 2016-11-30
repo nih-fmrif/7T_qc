@@ -138,21 +138,25 @@ if __name__ == "__main__":
     # Write results to summary file
     with open(summary_file, "a") as f:
         for clean_fname, statistics in sorted_results.items():
-            f.write("{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format(
-                clean_fname,
-                statistics['tsnr_val'],
-                statistics['prereg_fwhm_x'],
-                statistics['prereg_fwhm_y'],
-                statistics['prereg_fwhm_z'],
-                statistics['prereg_fwhm_combined'],
-                statistics['postreg_fwhm_x'],
-                statistics['postreg_fwhm_y'],
-                statistics['postreg_fwhm_z'],
-                statistics['postreg_fwhm_combined'],
-                statistics['mean_fd'],
-                statistics['num_fd_above_cutoff'],
-                statistics['perc_fd_above_cutoff']
-            ))
+
+            if statistics is None:
+                f.write("{},None,None,None,None,None,None,None,None,None,None,None,None\n".format(clean_fname))
+            else:
+                f.write("{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format(
+                    clean_fname,
+                    statistics['tsnr_val'],
+                    statistics['prereg_fwhm_x'],
+                    statistics['prereg_fwhm_y'],
+                    statistics['prereg_fwhm_z'],
+                    statistics['prereg_fwhm_combined'],
+                    statistics['postreg_fwhm_x'],
+                    statistics['postreg_fwhm_y'],
+                    statistics['postreg_fwhm_z'],
+                    statistics['postreg_fwhm_combined'],
+                    statistics['mean_fd'],
+                    statistics['num_fd_above_cutoff'],
+                    statistics['perc_fd_above_cutoff']
+                ))
 
     log_output("Analysis complete!", logger=logging)
 
