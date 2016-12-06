@@ -5,7 +5,7 @@ import shutil
 from concurrent.futures import ThreadPoolExecutor, wait
 from threading import Semaphore
 from utils import log_output, create_path
-from workflows import seven_tesla_wf
+from workflows import seven_tesla_wf, anat_average_wf
 from glob import glob
 from multiprocessing import cpu_count
 from collections import OrderedDict
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "output_dir",
         help="output directory for analysis files",
-        default=os.path.join(os.getcwd(), "tsnr")
+        default=os.path.join(os.getcwd(), "results")
     )
 
     parser.add_argument(
@@ -55,6 +55,13 @@ if __name__ == "__main__":
         help="Overwrite existing BIDS files. NOT RECOMMENDED.",
         action="store_true",
         default=False
+    )
+
+    parser.add_argument(
+        "--workflow",
+        help="Overwrite existing BIDS files. NOT RECOMMENDED.",
+        choices=['anat', 'func'],
+        default='func'
     )
 
     settings = parser.parse_args()
@@ -83,7 +90,8 @@ if __name__ == "__main__":
                    "Output directory: {}\n".format(settings.output_dir) + \
                    "Log directory: {}\n".format(settings.log_dir) + \
                    "No. of Threads: {}\n".format(settings.nthreads) + \
-                   "Overwrite: {}\n".format(settings.overwrite)
+                   "Overwrite: {}\n".format(settings.overwrite) + \
+                   "Workflow: {}".format(settings.workflow)
 
     log_output(settings_str, logger=logging)
 
@@ -104,59 +112,77 @@ if __name__ == "__main__":
     else:
         create_path(settings.output_dir)
 
-    # Create summary file and add the header row
-    summary_file = os.path.join(settings.output_dir, "Statistics.csv")
-    with open(summary_file, "w") as f:
-        f.write("Image,Mean tSNR,Pre-reg FWHM X,Pre-reg FWHM Y,Pre-reg FWHM Z,Pre-reg FWHM,"
-                "Post-reg FWHM X,Post-reg FWHM Y,Post-reg FWHM Z,Post-reg FWHM,Mean FD (mm),"
-                "No. FD > 0.2mm,% FD > 0.2mm\n")
-    
-    # Get all the Nifti images from the BIDS directory
-    nii_imgs = glob(os.path.join(settings.bids_dir, "*", "*", "*", "*.nii*"))
+    if settings.workflow == 'func':
 
-    analysis_results = {}
+        # Create summary file and add the header row
+        summary_file = os.path.join(settings.output_dir, "Statistics.csv")
+        with open(summary_file, "w") as f:
+            f.write("Image,Mean tSNR,Pre-reg FWHM X,Pre-reg FWHM Y,Pre-reg FWHM Z,Pre-reg FWHM,"
+                    "Post-reg FWHM X,Post-reg FWHM Y,Post-reg FWHM Z,Post-reg FWHM,Mean FD (mm),"
+                    "No. FD > 0.2mm,% FD > 0.2mm\n")
 
-    if settings.nthreads > 0:
+        # Get all the Nifti images from the BIDS directory
+        nii_imgs = glob(os.path.join(settings.bids_dir, "*", "*", "*", "*.nii*"))
 
-        futures = []
-        with ThreadPoolExecutor(max_workers=settings.nthreads) as executor:
+        analysis_results = {}
+
+        if settings.nthreads > 0:
+
+            futures = []
+            with ThreadPoolExecutor(max_workers=settings.nthreads) as executor:
+                for img in nii_imgs:
+                    futures.append(executor.submit(seven_tesla_wf, img, settings.output_dir, logging, tsnr_semaphore))
+
+            wait(futures)
+            for future in futures:
+                clean_fname, statistics = future.result()
+                analysis_results[clean_fname] = statistics
+
+        else:
             for img in nii_imgs:
-                futures.append(executor.submit(seven_tesla_wf, img, settings.output_dir, logging, tsnr_semaphore))
+                clean_fname, statistics = seven_tesla_wf(img, settings.output_dir, logger=logging)
+                analysis_results[clean_fname] = statistics
 
-        wait(futures)
-        for future in futures:
-            clean_fname, statistics = future.result()
-            analysis_results[clean_fname] = statistics
+        sorted_results = OrderedDict(sorted(analysis_results.items(), key=lambda t: t[0]))
 
-    else:
-        for img in nii_imgs:
-            clean_fname, statistics = seven_tesla_wf(img, settings.output_dir, logger=logging)
-            analysis_results[clean_fname] = statistics
+        # Write results to summary file
+        with open(summary_file, "a") as f:
+            for clean_fname, statistics in sorted_results.items():
 
-    sorted_results = OrderedDict(sorted(analysis_results.items(), key=lambda t: t[0]))
+                if statistics is None:
+                    f.write("{},None,None,None,None,None,None,None,None,None,None,None,None\n".format(clean_fname))
+                else:
+                    f.write("{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format(
+                        clean_fname,
+                        statistics['tsnr_val'],
+                        statistics['prereg_fwhm_x'],
+                        statistics['prereg_fwhm_y'],
+                        statistics['prereg_fwhm_z'],
+                        statistics['prereg_fwhm_combined'],
+                        statistics['postreg_fwhm_x'],
+                        statistics['postreg_fwhm_y'],
+                        statistics['postreg_fwhm_z'],
+                        statistics['postreg_fwhm_combined'],
+                        statistics['mean_fd'],
+                        statistics['num_fd_above_cutoff'],
+                        statistics['perc_fd_above_cutoff']
+                    ))
 
-    # Write results to summary file
-    with open(summary_file, "a") as f:
-        for clean_fname, statistics in sorted_results.items():
+    elif settings.workflow == 'anat':
 
-            if statistics is None:
-                f.write("{},None,None,None,None,None,None,None,None,None,None,None,None\n".format(clean_fname))
-            else:
-                f.write("{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format(
-                    clean_fname,
-                    statistics['tsnr_val'],
-                    statistics['prereg_fwhm_x'],
-                    statistics['prereg_fwhm_y'],
-                    statistics['prereg_fwhm_z'],
-                    statistics['prereg_fwhm_combined'],
-                    statistics['postreg_fwhm_x'],
-                    statistics['postreg_fwhm_y'],
-                    statistics['postreg_fwhm_z'],
-                    statistics['postreg_fwhm_combined'],
-                    statistics['mean_fd'],
-                    statistics['num_fd_above_cutoff'],
-                    statistics['perc_fd_above_cutoff']
-                ))
+        anat_output_dir = os.path.join(settings.output_dir, "anat_results")
+
+        if not os.path.isdir(anat_output_dir):
+            create_path(anat_output_dir)
+
+        session_dirs = glob(os.path.join(settings.bids_dir, "*", "*", "anat"))
+
+        for session_dir in session_dirs:
+
+            status = anat_average_wf(session_dir, anat_output_dir, logger=logging)
+
+            if not status:
+                log_output("Error analyzing anatomical images in folder {}".format(session_dir), logger=logging)
 
     log_output("Analysis complete!", logger=logging)
 

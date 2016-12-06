@@ -3,6 +3,8 @@ from subprocess import CalledProcessError, check_output, STDOUT
 from utils import log_output, create_path
 from algorithms import calc_tsnr, parse_fwhm, fd_jenkinson, extract_fd_results
 from collections import OrderedDict
+from glob import glob
+from string import ascii_lowercase
 
 
 LOG_MESSAGES = {
@@ -235,3 +237,122 @@ def seven_tesla_wf(in_file, out_dir, logger=None, semaphore=None):
         return clean_fname, statistics
 
     return clean_fname, None
+
+
+def _register_anat(base_img, img):
+
+    img_name = ""
+    if ".nii.gz" in img:
+        img_name = img[:-7]
+    elif ".nii" in img:
+        img_name = img[:-4]
+
+    volreg_fname = "{}_volreg.nii.gz".format(img_name)
+
+    volreg = [
+        "3dvolreg",
+        "-overwrite",
+        "-twopass",
+        "-heptic",
+        "-base",
+        "{}".format(base_img),
+        "-prefix",
+        "{}".format(volreg_fname),
+        "{}".format(img)
+    ]
+
+    return volreg
+
+
+def anat_average_wf(session_dir, out_dir, logger=None, semaphore=None):
+
+    base_img = glob(os.path.join(session_dir, "*run-01_T1w.nii*"))[0]
+    additional_imgs = [img for img in glob(os.path.join(session_dir, "*run-01_T1w.nii*")) if "run-01_T1w" not in img]
+
+    wf = []
+
+    for img in additional_imgs:
+        wf.append(_register_anat(base_img, img))
+
+    wf_success = True
+
+    for cmd in wf:
+
+        if not wf_success:
+            break
+
+        try:
+            result = check_output(cmd, cwd=session_dir, stderr=STDOUT, universal_newlines=True)
+
+            log_str = LOG_MESSAGES["success"].format(" ".join(cmd), 0)
+
+            if result:
+                log_str += LOG_MESSAGES["output"].format(result)
+
+            log_output(log_str, logger=logger, semaphore=semaphore)
+
+        except CalledProcessError as e:
+
+            log_str = LOG_MESSAGES["error"].format(cmd[0], " ".join(cmd), e.returncode)
+
+            if e.output:
+                log_str += LOG_MESSAGES["output"].format(e.output)
+
+            log_output(log_str, logger=logger, semaphore=semaphore)
+
+            wf_success = False
+
+    if wf_success:
+
+        alphabet = list(ascii_lowercase)
+
+        calc_cmd = [
+            "3dCalc"
+        ]
+        used_letters = []
+        volreg_imgs = glob(os.path.join(session_dir, "*_volreg.nii.gz"))
+        volreg_imgs.insert(0, base_img)
+
+        for img in volreg_imgs:
+            curr_letter = alphabet.pop(0)
+            curr_params = [
+                "-{}".format(curr_letter),
+                "{}".format(img)
+            ]
+            calc_cmd.extend(curr_params)
+            used_letters.append(curr_letter)
+
+        expr_string = "({})/{}".format("+".join(used_letters), len(used_letters))
+        expr = [
+            "-expr",
+            "{}".format(expr_string)
+        ]
+
+        calc_cmd.extend(expr)
+
+        try:
+            result = check_output(calc_cmd, cwd=session_dir, stderr=STDOUT, universal_newlines=True)
+
+            log_str = LOG_MESSAGES["success"].format(" ".join(calc_cmd), 0)
+
+            if result:
+                log_str += LOG_MESSAGES["output"].format(result)
+
+            log_output(log_str, logger=logger, semaphore=semaphore)
+
+        except CalledProcessError as e:
+
+            log_str = LOG_MESSAGES["error"].format(calc_cmd[0], " ".join(calc_cmd), e.returncode)
+
+            if e.output:
+                log_str += LOG_MESSAGES["output"].format(e.output)
+
+            log_output(log_str, logger=logger, semaphore=semaphore)
+
+            return False
+
+        return True
+
+    return False
+
+
