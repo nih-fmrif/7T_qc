@@ -239,15 +239,15 @@ def seven_tesla_wf(in_file, out_dir, logger=None, semaphore=None):
     return clean_fname, None
 
 
-def _register_anat(base_img, img):
+def _register_anat(base_img, img, out_dir):
 
-    img_name = ""
+    img_name = os.path.basename(img)
     if ".nii.gz" in img:
-        img_name = img[:-7]
+        img_name = img_name[:-7]
     elif ".nii" in img:
-        img_name = img[:-4]
+        img_name = img_name[:-4]
 
-    volreg_fname = "{}_volreg.nii.gz".format(img_name)
+    volreg_fname = os.path.join(out_dir, "{}_volreg.nii.gz".format(img_name))
 
     volreg = [
         "3dvolreg",
@@ -267,12 +267,12 @@ def _register_anat(base_img, img):
 def anat_average_wf(session_dir, out_dir, logger=None, semaphore=None):
 
     base_img = glob(os.path.join(session_dir, "*run-01_T1w.nii*"))[0]
-    additional_imgs = [img for img in glob(os.path.join(session_dir, "*run-01_T1w.nii*")) if "run-01_T1w" not in img]
+    additional_imgs = [img for img in glob(os.path.join(session_dir, "*.nii*")) if "run-01_T1w" not in img]
 
     wf = []
 
     for img in additional_imgs:
-        wf.append(_register_anat(base_img, img))
+        wf.append(_register_anat(base_img, img, out_dir))
 
     wf_success = True
 
@@ -307,10 +307,10 @@ def anat_average_wf(session_dir, out_dir, logger=None, semaphore=None):
         alphabet = list(ascii_lowercase)
 
         calc_cmd = [
-            "3dCalc"
+            "3dcalc"
         ]
         used_letters = []
-        volreg_imgs = glob(os.path.join(session_dir, "*_volreg.nii.gz"))
+        volreg_imgs = glob(os.path.join(out_dir, "*_volreg.nii.gz"))
         volreg_imgs.insert(0, base_img)
 
         for img in volreg_imgs:
@@ -325,10 +325,17 @@ def anat_average_wf(session_dir, out_dir, logger=None, semaphore=None):
         expr_string = "({})/{}".format("+".join(used_letters), len(used_letters))
         expr = [
             "-expr",
-            "{}".format(expr_string)
+            "{}".format(expr_string),
         ]
 
         calc_cmd.extend(expr)
+
+        calc_name = "_".join(os.path.basename(base_img).split("_")[:2])
+
+        calc_cmd.extend([
+            "-prefix",
+            "{}_anat_avg.nii.gz".format(os.path.join(out_dir, calc_name))
+        ])
 
         try:
             result = check_output(calc_cmd, cwd=session_dir, stderr=STDOUT, universal_newlines=True)
